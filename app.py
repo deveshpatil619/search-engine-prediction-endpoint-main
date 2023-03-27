@@ -51,7 +51,7 @@ async def upload_file(file: UploadFile = File(...)): #asynchronous function that
         if predict_pipe: #checks if the predict_pipe object is instantiated.
             contents = file.file.read() #If it exists, the contents of the uploaded file are read 
             searchedImages = predict_pipe.run_predictions(contents) #and passed to the predict_pipe.run_predictions() method.
-            return {"message": "Prediction Completed"}
+            return {"message": "Prediction Completed"} 
         else:
             return {"message": "First Load Model in Production using reload_prod_model route"}
     except Exception as e:

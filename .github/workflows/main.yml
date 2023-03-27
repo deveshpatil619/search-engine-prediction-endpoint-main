@@ -1,93 +1,107 @@
-name: workflow
+name: workflow  #the name of the workflow.
 
-on:
+on: 
   push:
-    branches:
+    branches: # GitHub Actions workflow that is triggered when changes are pushed to the main branch of the repository, 
       - main
-    paths-ignore:
+    paths-ignore: # exception of changes to the README.md file.
       - 'README.md'
 
-permissions:
-  id-token: write
+permissions: #section specifies the permissions required for the workflow to run
+  id-token: write #it requires write access to the repository's ID token and read access to the repository's contents.
   contents: read
 
-jobs:
-  integration:
-    name: Continuous Integration
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
+jobs: # jobs within the workflow.
+  integration: # defines a job named "integration".
+    name: Continuous Integration # name of the job to "Continuous Integration".
+    runs-on: ubuntu-latest ## job will run on a virtual machine running the latest version of Ubuntu.
+    steps: ## starts the list of steps that will be executed as part of the job.
+      - name: Checkout Code #checks out the source code for the repository using the GitHub Actions Checkout action.
+        uses: actions/checkout@v3 
+
+      - name: Lint code # The first step is called Lint code. It is a linting step which checks the code for 
+        run: echo "Linting repository"  # stylistic or formatting errors, and is performed by running the command echo "Linting repository".
+             # This step does not actually perform any linting, but instead just outputs a message to the console.
+
+      - name: Run unit tests  ## The second step is called Run unit tests. This step runs unit tests for the codebase, 
+        run: echo "Running unit tests " #and is performed by running the command echo "Running unit tests". This step 
+                               #does not actually run any tests, but instead just outputs a message to the console.
+
+  build-and-push-ecr-image: # builds and pushes a Docker image to Amazon Elastic Container Registry (ECR) as part of a continuous delivery pipeline. 
+    name: Continuous Delivery #The name of the workflow Continuous Delivery.
+    needs: integration #A reference to the previous step or job that the current job depends on. In this case,
+    # it depends on a job called integration.
+    runs-on: ubuntu-latest ## type of virtual machine that the job will run on.
+    steps: #list of steps that the job will perform
+      - name: Checkout Code #checks out the source code for the repository using the GitHub Actions Checkout action.
         uses: actions/checkout@v3
 
-      - name: Lint code
-        run: echo "Linting repository"
+      - name: Configure AWS credentials # Sets up the AWS credentials needed to interact with Amazon ECR.
+        uses: aws-actions/configure-aws-credentials@v1 #uses keyword specifies the action that will be performed,
+        with: #with keyword specifies the inputs for the action,
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }} #which are the AWS access key ID, 
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }} #AWS secret access key
+          aws-region: ${{ secrets.AWS_REGION }} #and AWS region
 
-      - name: Run unit tests
-        run: echo "Running unit tests "
+      - name: Login to Amazon ECR # Logs in to Amazon ECR using the AWS credentials.
+        id: login-ecr #login action to authenticate with the Amazon Elastic Container Registry (ECR) using the AWS credentials configured in the previous step. 
+        uses: aws-actions/amazon-ecr-login@v1 #GitHub Action should use the amazon-ecr-login action provided by the
+#aws-actions GitHub organization, which is designed to log in to the Amazon Elastic Container Registry (ECR) using
+#AWS credentials. The @v1 at the end of the action name specifies that the first version of the action should be used.
 
-  build-and-push-ecr-image:
-    name: Continuous Delivery
-    needs: integration
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Build, tag, and push image to Amazon ECR
-        id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
-          IMAGE_TAG: production
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+      - name: Build, tag, and push image to Amazon ECR #: Builds the Docker image, tags it with a name, and pushes it to Amazon ECR
+        id: build-image 
+        env: # The env section defines environment variables that are used in this step. 
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }} #This is set to the output of the login-ecr step, which is the Amazon ECR registry URL.
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }} #This is set to the name of the Amazon ECR repository, which is stored in a secret called ECR_REPOSITORY_NAME.
+          IMAGE_TAG: production #This is set to the tag name for the Docker image, which is set to production.
+        run: |  #The run section defines the shell commands that are run to build and push the image.
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG . 
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-  pull-and-start-app-on-prod:
-    needs: build-and-push-ecr-image
-    name: Continuous Deployment
-    runs-on: self-hosted
-    steps:
-      - name: Checkout
+  pull-and-start-app-on-prod: #This is the name of the workflow.
+    needs: build-and-push-ecr-image #line specifies that this workflow depends on the successful completion of the
+#build-and-push-ecr-image workflow. It means that this workflow will only run if the previous one has succeeded.
+    name: Continuous Deployment #specifies the name of the workflow.
+    runs-on: self-hosted # specifies the runner environment that will execute this workflow
+    steps: # start of the list of steps that the workflow will perform.
+
+      - name: Checkout #checks out the code for the repository to the runner environment.
         uses: actions/checkout@v3
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+      - name: Configure AWS credentials #specifies the name of the step
+        uses: aws-actions/configure-aws-credentials@v1 #uses keyword specifies the action that will be performed and
+        # it will configure the aws with all the needed credentials
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}  #AWS_ACCESS_KEY_ID will be taken from secrets defined in the github actions
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }} ##AWS_SECRET_ACCESS_KEY will be taken from secrets defined in the github actions.
+          aws-region: ${{ secrets.AWS_REGION }} #AWS_REGION will be taken from the github actions secrets variables
 
-      - name: AWS ECR Login
+    # steps for deploying a Docker image on a production server using AWS ECR.
+      - name: AWS ECR Login #logs in to AWS ECR using the AWS CLI to get a temporary authorization token, which is then used to authenticate Docker commands.
         run: sudo docker login -u AWS -p $(aws ecr get-login-password --region ${{ secrets.AWS_REGION }}) ${{ secrets.AWS_ECR_LOGIN_URI }}
 
-      - name: Pull App Image
+      - name: Pull App Image #pulls the latest Docker image from the AWS ECR repository using the docker pull command
         run: sudo docker pull ${{secrets.AWS_ECR_LOGIN_URI}}/${{ secrets.ECR_REPOSITORY_NAME }}:production
 
-      - name: Remove Already Running Container
+      - name: Remove Already Running Container #stops and removes any existing containers running the same image, if any. This is done using the docker ps, grep, docker stop, and docker rm commands.
         run: docker ps -q --filter "name=production" | grep -q . && docker stop ${IMAGE_NAME} && docker rm -fv ${IMAGE_NAME} || true
 
-      - name: Docker System Prune to Remove Old Images
-        run: sudo docker system prune -f
+      - name: Docker System Prune to Remove Old Images #  removes any unused Docker images from the system using the docker system prune command. 
+        run: sudo docker system prune -f 
 
       - name: Run Docker Image to serve users
-        run: |
-          sudo docker run --name=production -d \
+        run: |  #The run key specifies the command to be executed in the Docker container. 
+          sudo docker run --name=production -d \ 
           -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
           -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
           -e AWS_BUCKET_NAME=${{ secrets.AWS_BUCKET_NAME }} \
           -e AWS_REGION=${{ secrets.AWS_REGION }} \
           -p 8080:8080 ${{secrets.AWS_ECR_LOGIN_URI}}/${{ secrets.ECR_REPOSITORY_NAME }}:production
 
+#command starts a Docker container named "production" in detached mode (-d) 
+#sets some environment variables such as AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_BUCKET_NAME,AWS_REGION,AWS_ECR_LOGIN_URI,ECR_REPOSITORY_NAME
+#using the secrets stored in the GitHub repository.
+#The container will be accessible on port 8080 (-p 8080:8080). The image used is pulled from Amazon ECR using the URI and repository name specified in the secrets.
+#When this step is executed, the Docker container will be started and will begin serving users on port 8080.
