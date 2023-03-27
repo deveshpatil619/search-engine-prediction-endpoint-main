@@ -26,7 +26,7 @@ echo "0bfd792196ce0ec6f1c65d2a9ad00215b2926ef2c416b8d97615265194477117  actions-
 tar xzf ./actions-runner-linux-x64-2.298.2.tar.gz
 
 ## Important
-./config.sh --url https://github.com/ketangangal/SearchEngine-DataCollection --token <mention-you-token-here>
+./config.cmd --url https://github.com/deveshpatil619/search-engine-prediction-endpoint-main --token AR5PQMTQ3Y2OPZ2UKVIVO4TED7SLK
 ./run.sh
 
 ## Add Github runner as a service

@@ -1,37 +1,56 @@
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi import File, UploadFile
-from estimator.components.predict import Prediction
-from fastapi import FastAPI, Request
-import uvicorn
-
-app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"))
-TEMPLATES = Jinja2Templates(directory='templates')
-searchedImages = []
-
-predict_pipe = Prediction()
+from fastapi.staticfiles import StaticFiles  #StaticFiles is a class that serves static files (such as CSS,
+#JavaScript, images, etc.) from a specified directory on the web server
+from fastapi.templating import Jinja2Templates  #Jinja2Templates is a class that is used for rendering templates 
+# using the Jinja2 template engine. It is used to load and render HTML templates.
+from fastapi import File, UploadFile # File and UploadFile are classes from the fastapi module that are used to
+#handle file uploads in FastAPI applications.
+from estimator.components.predict import Prediction #Prediction is a class from the custom module 
+#estimator.components.predict that is used to run a pre-trained machine learning model for image prediction.
+from fastapi import FastAPI, Request #FastAPI is the main class from the fastapi module that is used to create a FastAPI application. 
+#Request is a class from the fastapi module that represents an HTTP request made to the application.
+import uvicorn #uvicorn is a Python web server that can run ASGI applications, including FastAPI applications.
 
 
-@app.get("/", status_code=200)
-@app.post("/")
-async def index(request: Request):
+"""The below code is implementing a FastAPI application to serve a web application for image prediction. The main 
+purpose of the code is to provide a web interface for users to upload an image file, which is then passed through 
+a pre-trained prediction model to get predictions, and then display the predicted results on the webpage."""
+
+
+app = FastAPI()  ## creates the instance of the FastAPI class 
+app.mount("/static", StaticFiles(directory="static")) #mounts the /static path to serve static files from the 
+#static directory. This means that any files placed in the static directory can be accessed by appending their filenames to the /static path.
+TEMPLATES = Jinja2Templates(directory='templates') #creates a new instance of the Jinja2Templates class and assigns
+#it to the variable TEMPLATES This instance is used to load Jinja2 templates from the templates directory, 
+searchedImages = [] # initializes an empty list called searchedImages
+
+predict_pipe = Prediction() #creates a new instance of the Prediction class and assigns it to the variable predict_pipe.
+
+#define a route (endpoint) for the root path / of the application.
+@app.get("/", status_code=200)  #GET method for the / path. The status_code argument sets the HTTP status code to 
+#be returned by the endpoint when it is successfully accessed. In this case, it is set to 200, which means "OK".
+@app.post("/") #registers a POST method for the / path. This means that when a client sends a POST request to the
+#root path, this endpoint will handle it.
+async def index(request: Request): #coroutine function that defines the behavior of the endpoint. 
     """
     Description : This Route loads the index.html
     """
-    return TEMPLATES.TemplateResponse(name='index.html', context={"request": request})
+    return TEMPLATES.TemplateResponse(name='index.html', context={"request": request}) #returns a TemplateResponse 
+# object that renders the index.html template from the templates directory using the Jinja2 template engine.
+# The context argument is a dictionary that provides additional data to the template, including the request object.
 
 
-@app.post('/image')
-async def upload_file(file: UploadFile = File(...)):
+
+@app.post('/image') #function defines a route that handles POST requests to the /image path.
+async def upload_file(file: UploadFile = File(...)): #asynchronous function that takes a single argument file of 
+# type UploadFile. The File(...) argument sets the file parameter to be required.
     """
     Description : This Route loads the predictions in a list which will be listed on webpage.
     """
-    global searchedImages, predict_pipe
-    try:
-        if predict_pipe:
-            contents = file.file.read()
-            searchedImages = predict_pipe.run_predictions(contents)
+    global searchedImages, predict_pipe #variables as global, allowing them to be accessed and modified within the function.
+    try: 
+        if predict_pipe: #checks if the predict_pipe object is instantiated.
+            contents = file.file.read() #If it exists, the contents of the uploaded file are read 
+            searchedImages = predict_pipe.run_predictions(contents) #and passed to the predict_pipe.run_predictions() method.
             return {"message": "Prediction Completed"}
         else:
             return {"message": "First Load Model in Production using reload_prod_model route"}
@@ -39,41 +58,52 @@ async def upload_file(file: UploadFile = File(...)):
         return {"message": f"There was an error uploading the file {e}"}
 
 
-@app.post('/reload')
+@app.post('/reload')  #maps the function to the /reload endpoint with HTTP POST method.
 def reload():
     """
     Description : This Route resets the predictions in a list for reload.
     """
     global searchedImages
     searchedImages = []
-    return
+    return #The function does not return anything, but a response is automatically generated by FastAPI indicating 
+#that the operation was successful.
 
 
-@app.get('/reload_prod_model')
+
+@app.get('/reload_prod_model') #maps the function to /reload_prod_model endpoint with HTTP get method
 def reload():
     """
     Description : This Route is Event Triggered or owner controlled to update
                   the model in prod with minimal downtime.
     """
-    global predict_pipe
+    global predict_pipe ## variables as global, allowing them to be accessed and modified within the function.
     try:
-        del predict_pipe
-        predict_pipe = Prediction()
-        return {"Response": "Successfully Reloaded"}
+        del predict_pipe # deletes the object predict_pipe from memory. This means that the memory used by predict_pipe will be freed up.
+        predict_pipe = Prediction() #sets the global variable predict_pipe to a new instance of the Prediction class. 
+        #This will effectively reload the machine learning model used for predictions.
+        return {"Response": "Successfully Reloaded"} #If the operation is successful, the function returns a JSON response with the message 
     except Exception as e:
         return {"Response": e}
 
 
-@app.get('/gallery')
-async def gallery(request: Request):
+
+@app.get('/gallery') ## maps the function to /gallery endpoint with HTTP get method
+async def gallery(request: Request): #asynchronous function gallery that takes a request object of type Request as an argument. 
     """
     Description : This Route lists all the predicted images on the gallery.html listing depends on prediction.
     """
-    global searchedImages
-    return TEMPLATES.TemplateResponse('gallery.html', context={"request": request, "length": len(searchedImages),
+    global searchedImages #searchedImages variable is a global variable that can be accessed and modified within the function.
+    return TEMPLATES.TemplateResponse(name = 'gallery.html', context={"request": request, "length": len(searchedImages),
                                                                "searchedImages": searchedImages})
+# returns a TemplateResponse object generated by the Jinja2Templates module. The gallery.html template is used to 
+#render the response, with the context containing information about the number of images in the searchedImages list and the list itself.
 
-
-if __name__ == "__main__":
+if __name__ == "__main__": #This block of code is the entry point of the application. It uses the uvicorn server to run the app on the specified host and port.
     uvicorn.run(app, host="0.0.0.0", port=8080)
+
+
+
+
+
+
 
