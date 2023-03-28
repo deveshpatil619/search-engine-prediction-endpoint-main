@@ -31,14 +31,24 @@ class StorageConnection: ## class name is StorageConnection
         if os.path.exists(self.config.ARTIFACTS_ROOT + "embeddings.json"): ## checks if the file embeddings.json is already in the directory
             os.remove(self.config.ARTIFACTS_ROOT + "embeddings.json") ## if the file is found then it is removed
 
-        self.bucket.download_file(self.config.ZIP_NAME, self.config.ARTIFACTS_PATH)
-        folder = tarfile.open(self.config.ARTIFACTS_PATH)
-        folder.extractall(self.config.ARTIFACTS_ROOT)
-        folder.close()
-        os.remove(self.config.ARTIFACTS_PATH)
-        print("Fetching Completed !")
+        self.bucket.download_file(self.config.ZIP_NAME, self.config.ARTIFACTS_PATH) #The download_file method from 
+        #the s3.Bucket class of the boto3 package is used to download the file. It takes two arguments: the name of
+        #  the file in the S3 bucket, and the local path where the file should be downloaded.
+        folder = tarfile.open(self.config.ARTIFACTS_PATH) # The tarfile.open method takes the path of the downloaded
+        #file and returns a TarFile object, which can be used to extract its contents.
+        folder.extractall(self.config.ARTIFACTS_ROOT) #extractall method of the TarFile object is used to extract all 
+        #the contents of the zip file to the specified directory.
+        folder.close() ## the file is closed
+        os.remove(self.config.ARTIFACTS_PATH) #the downloaded zip file is removed using os.remove
+        print("Fetching Completed !") 
 
 
 if __name__ == "__main__":
-    connection = StorageConnection()
-    connection.get_package_from_testing()
+    connection = StorageConnection() # creating the instance of StorageConnection class 
+    connection.get_package_from_testing() ## running method get_package_from_testing from the object of that class.
+ 
+
+
+
+
+ 
