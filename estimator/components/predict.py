@@ -1,15 +1,16 @@
-import os
-from from_root import from_root
-from estimator.components.custom_ann import CustomAnnoy
-from estimator.components.storage_helper import StorageConnection
-from estimator.entity.config import PredictConfig
-from estimator.components.model import NeuralNet
-from torchvision import transforms
-from PIL import Image
-from torch import nn
-import numpy as np
-import torch
-import io
+import os ## for the os operations 
+from from_root import from_root ## importing the library from_root to get the root directory of the project
+from estimator.components.custom_ann import CustomAnnoy # importing the CustomAnnoy class  taht has the ANNOY algorith customized into it.
+from estimator.components.storage_helper import StorageConnection #Importing the StorageConnection class that contains the AWS connection details
+from estimator.entity.config import PredictConfig #importing class name is PredictConfig that defines the input to model creation.
+from estimator.components.model import NeuralNet #importing the class called NeuralNet which inherits from the nn.Module
+from torchvision import transforms # The transforms module from torchvision provides a set of common image transformations that can be applied to PIL images or tensors. 
+from PIL import Image # The Image module from PIL (Python Imaging Library) is a third-party library that for opening, manipulating, and saving many different image file formats.  
+from torch import nn # importing the neural network creators from the pytorch library
+import numpy as np # importing numpy
+import torch #importing the pytorch library
+import io #In the context of machine learning and deep learning, io is commonly used to work with data in memory, 
+#such as loading and saving models, reading and writing data to and from byte arrays, and transforming data between different formats.
 
 
 class Prediction(object):
@@ -68,3 +69,12 @@ class Prediction(object):
         image = image.reshape(1, 3, 256, 256)
         embedding = self.generate_embeddings(image)
         return self.generate_links(embedding[0])
+
+
+
+
+
+
+
+
+
