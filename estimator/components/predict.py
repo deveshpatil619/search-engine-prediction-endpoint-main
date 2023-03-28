@@ -13,14 +13,15 @@ import io #In the context of machine learning and deep learning, io is commonly 
 #such as loading and saving models, reading and writing data to and from byte arrays, and transforming data between different formats.
 
 
-class Prediction(object):
+class Prediction(object): #class takes input data in the form of Python objects PyTorch tensors.
     """
-    Prediction class Prepares the model endpoint
+    Prediction class Prepares the model endpoint which is the interface between the model and any external systems
+    that will interact with it.
     """
-    def __init__(self):
-        self.config = PredictConfig()
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.initial_setup()
+    def __init__(self): # several important variables and methods are initialized:
+        self.config = PredictConfig()  # instance of PredictConfig class that defines the input to model creation.
+        self.device = "cuda" if torch.cuda.is_available() else "cpu" #  variable is set to either "cuda" (if a GPU is available) or "cpu" (if not).
+        self.initial_setup() #sets up any other components of the model or dependencies needed for the model to function.
 
         self.ann = CustomAnnoy(self.config.EMBEDDINGS_LENGTH,
                                self.config.SEARCH_MATRIX)
@@ -31,10 +32,12 @@ class Prediction(object):
         self.transforms = self.transformations()
 
     @staticmethod
-    def initial_setup():
-        if not os.path.exists(os.path.join(from_root(), "artifacts")):
-            os.makedirs(os.path.join(from_root(), "artifacts"))
-        connection = StorageConnection()
+    def initial_setup():    
+        """ method to set up the project environment by creating necessary directories and retrieving any 
+    required data or packages from a remote source."""    
+        if not os.path.exists(os.path.join(from_root(), "artifacts")): ## checks if the artifact folder exist in root folder
+            os.makedirs(os.path.join(from_root(), "artifacts")) ## creates folder artifact is it does not exist
+        connection = StorageConnection() # creates an instance of StorageConnection class  Created connection with S3 bucket using boto3 api to fetch the model from Repository.
         connection.get_package_from_testing()
 
     def load_model(self):
