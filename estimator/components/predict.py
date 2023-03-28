@@ -62,32 +62,44 @@ class Prediction(object): #class takes input data in the form of Python objects 
             Transformation Method Provides TRANSFORM_IMG object. Its pytorch's transformation class to apply on images.
             :return: TRANSFORM_IMG
             """
-        TRANSFORM_IMG = transforms.Compose( 
-            [transforms.Resize(self.config.IMAGE_SIZE),
-             transforms.CenterCrop(self.config.IMAGE_SIZE),
-             transforms.ToTensor(),
-             transforms.Normalize(mean=[0.485, 0.456, 0.406],
+        TRANSFORM_IMG = transforms.Compose(  ## Composes several transforms together.
+            [transforms.Resize(self.config.IMAGE_SIZE),## resize the image to shape to 256
+             transforms.CenterCrop(self.config.IMAGE_SIZE), ## This transformation takes a PIL (Python Imaging Library) image as input and 
+#returns a new image of size (256, 256) by cropping the input image from its center. The transformation ensures
+#  that the center of the image is preserved while removing the outer edges of the image.
+             transforms.ToTensor(), ##Convert a PIL Image or numpy.ndarray to tensor. This transform does not support torchscript.
+#Converts a PIL Image or numpy.ndarray (H x W x C) in the range [0, 255] to a torch.FloatTensor of shape (C x H x W) in the range [0.0, 1.0]
+             transforms.Normalize(mean=[0.485, 0.456, 0.406], #This transformation is typically applied to the image data after it has been resized or cropped, and before it is fed into the neural network.
+#The mean and std arguments are lists of length 3, corresponding to the mean and standard deviation of the pixel values for the red, green, and blue 
+# channels, respectively. These values are usually calculated based on the training dataset and are used to normalize the pixel values of the input images so that they have a similar scale and range.
                                   std=[0.229, 0.224, 0.225])]
         )
 
-        return TRANSFORM_IMG
+        return TRANSFORM_IMG ## return the transformed image parameters.
 
     def generate_embeddings(self, image):
-        image = self.estimator(image.to(self.device))
-        image = image.detach().cpu().numpy()
-        return image
+        """method  that generates embeddings for an image"""
+        image = self.estimator(image.to(self.device)) #image as input and applies the PyTorch model self.estimator to the image on the self.device 
+        #which is probably a CPU). The output is a NumPy array containing the embeddings for the image.
+        image = image.detach().cpu().numpy()  #returns the NumPy array representation of the tensor after it has been detached from the computation graph and moved to the CPU.
+        return image ## image in array
 
     def generate_links(self, embedding):
+        """The generate_links function takes an embedding vector and returns the self.config.NUMBER_OF_PREDICTIONS
+        nearest neighbor links from the database, as determined by the ann index. The ann index is created using 
+        the annoy library and is built on the embeddings of the images in the database. The get_nns_by_vector 
+        function is used to get the nearest neighbors of the given embedding."""
         return self.ann.get_nns_by_vector(embedding, self.config.NUMBER_OF_PREDICTIONS)
 
     def run_predictions(self, image):
-        image = Image.open(io.BytesIO(image))
-        if len(image.getbands()) < 3:
-            image = image.convert('RGB')
-        image = torch.from_numpy(np.array(self.transforms(image)))
-        image = image.reshape(1, 3, 256, 256)
-        embedding = self.generate_embeddings(image)
-        return self.generate_links(embedding[0])
+        """method that takes an image as input and returns the links of similar images."""
+        image = Image.open(io.BytesIO(image)) # it opens the image using the PIL library's Image module and reads the image data from a bytes buffer.
+        if len(image.getbands()) < 3: # it checks if the image has less than 3 color channels, which indicates it's a grayscale image. 
+            image = image.convert('RGB') #If so, it converts it to an RGB image.
+        image = torch.from_numpy(np.array(self.transforms(image)))# applies the image transformation using the transform function defined earlier.
+        image = image.reshape(1, 3, 256, 256) #reshapes the transformed image to have the required shape of (batch_size, channels, height, width)
+        embedding = self.generate_embeddings(image) #generates an embedding for the image using the generate_embeddings function.
+        return self.generate_links(embedding[0]) #it returns the links of similar images based on the embedding using the generate_links function.
 
 
 
