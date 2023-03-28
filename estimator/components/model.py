@@ -1,4 +1,4 @@
-from estimator.entity.config import PredictConfig
+from estimator.entity.config import PredictConfig 
 from torch import nn
 import torch
 
