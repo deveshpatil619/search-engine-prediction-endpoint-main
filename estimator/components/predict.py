@@ -23,13 +23,15 @@ class Prediction(object): #class takes input data in the form of Python objects 
         self.device = "cuda" if torch.cuda.is_available() else "cpu" #  variable is set to either "cuda" (if a GPU is available) or "cpu" (if not).
         self.initial_setup() #sets up any other components of the model or dependencies needed for the model to function.
 
-        self.ann = CustomAnnoy(self.config.EMBEDDINGS_LENGTH,
+        self.ann = CustomAnnoy(self.config.EMBEDDINGS_LENGTH, # instance of the CustomAnnoy class is created, which
+        # is used for searching and retrieving embeddings from the model, it takes two input arguments EMBEDDINGS_LENGTH=256,
+        # SEARCH_MATRIX is euclidean.
                                self.config.SEARCH_MATRIX)
 
-        self.ann.load(self.config.MODEL_PATHS[0][0])
-        self.estimator = self.load_model()
-        self.estimator.eval()
-        self.transforms = self.transformations()
+        self.ann.load(self.config.MODEL_PATHS[0][0]) #method is called to load a pre-trained model from a specified path.
+        self.estimator = self.load_model() #instance of the load_model method is created 
+        self.estimator.eval() # method is called to put the model in evaluation mode, which may disable certain features like dropout or batch normalization.
+        self.transforms = self.transformations() #method is called, which applies any necessary transformations to the input data before feeding it into the model.
 
     @staticmethod
     def initial_setup():    
@@ -38,15 +40,29 @@ class Prediction(object): #class takes input data in the form of Python objects 
         if not os.path.exists(os.path.join(from_root(), "artifacts")): ## checks if the artifact folder exist in root folder
             os.makedirs(os.path.join(from_root(), "artifacts")) ## creates folder artifact is it does not exist
         connection = StorageConnection() # creates an instance of StorageConnection class  Created connection with S3 bucket using boto3 api to fetch the model from Repository.
-        connection.get_package_from_testing()
+        connection.get_package_from_testing() # calls method get_package_from_testing that downloads the model artifacts 
+        #from an S3 bucket by creating a connection with the bucket using boto3 and then downloading the ZIP file containing the model artifacts.
 
     def load_model(self):
-        model = NeuralNet()
-        model.load_state_dict(torch.load(self.config.MODEL_PATHS[1][0], map_location=self.device))
+        """The load_model method loads the trained PyTorch model and returns a new model that is the same as the
+        trained model, but with the final output layer removed."""
+        model = NeuralNet() #instance of the NeuralNet class is created which contains Replica of the neural network used while training.
+        model.load_state_dict(torch.load(self.config.MODEL_PATHS[1][0], map_location=self.device)) # load_state_dict()
+#method loads the trained model parameters into the new model instance. torch.load() is a function used to load a saved model
+#input the file path of the saved model or checkpoint and returns a dictionary object that contains the model parameters and other information that was saved with the model.
+# The map_location parameter specifies the device where the model should be loaded in CPU or GPU.
         return nn.Sequential(*list(model.children())[:-1])
+        """The final output layer is removed from the loaded 
+        model by creating a new Sequential model instance and copying all the layers from the original model
+        except the final one, which is removed using the list slicing notation [:-1]. This is because the 
+        final layer is specific to the training task, and is not necessary for making predictions with the model."""
 
-    def transformations(self):
-        TRANSFORM_IMG = transforms.Compose(
+    def transformations(self): ## This method  the transforms module provides a set of common image transformations 
+        """
+            Transformation Method Provides TRANSFORM_IMG object. Its pytorch's transformation class to apply on images.
+            :return: TRANSFORM_IMG
+            """
+        TRANSFORM_IMG = transforms.Compose( 
             [transforms.Resize(self.config.IMAGE_SIZE),
              transforms.CenterCrop(self.config.IMAGE_SIZE),
              transforms.ToTensor(),
